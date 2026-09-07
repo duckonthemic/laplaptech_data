@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
-CHART_COLORS = ["#0F766E", "#2563EB", "#E76F51", "#D97706", "#64748B"]
+CHART_COLORS = ["#007C78", "#2155CD", "#D95D39", "#D89325", "#596A7A"]
 
 
 def local_connection_settings() -> dict[str, Any]:
@@ -117,24 +117,25 @@ def display_number(value: Any) -> str:
 
 def styled_chart(figure: go.Figure, height: int = 360) -> go.Figure:
     figure.update_layout(
+        template="plotly_white",
         height=height,
-        margin={"l": 8, "r": 8, "t": 26, "b": 8},
+        margin={"l": 8, "r": 8, "t": 16, "b": 8},
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font={"color": "#1F2937"},
+        font={"family": "Inter, Arial, sans-serif", "color": "#172033"},
         legend_title_text="",
+        hoverlabel={
+            "bgcolor": "#172033",
+            "bordercolor": "#172033",
+            "font": {"color": "#FFFFFF"},
+        },
     )
-    figure.update_xaxes(gridcolor="#E5E7EB", zerolinecolor="#E5E7EB")
-    figure.update_yaxes(gridcolor="#E5E7EB", zerolinecolor="#E5E7EB")
+    figure.update_xaxes(gridcolor="#DCE5EA", zerolinecolor="#DCE5EA")
+    figure.update_yaxes(gridcolor="#DCE5EA", zerolinecolor="#DCE5EA")
     return figure
 
 
 def render_funnel(funnel: pd.DataFrame) -> None:
-    st.header("Strict Session Funnel")
-    st.caption(
-        "Every stage occurs after the prior stage: Search -> Product View -> "
-        "Comparison Selection -> Add to Comparison."
-    )
     if funnel.empty:
         st.warning("No session-funnel data is available in the local Gold mart.")
         return
@@ -172,7 +173,7 @@ def render_funnel(funnel: pd.DataFrame) -> None:
                 marker={"color": CHART_COLORS},
             )
         )
-        st.plotly_chart(styled_chart(figure), width="stretch")
+        st.plotly_chart(styled_chart(figure, 390), width="stretch")
     with table_column:
         stage_table = pd.DataFrame(
             {
@@ -184,11 +185,10 @@ def render_funnel(funnel: pd.DataFrame) -> None:
                 ],
             }
         )
-        st.dataframe(stage_table, hide_index=True, width="stretch")
+        st.dataframe(stage_table, hide_index=True, width="stretch", height=305)
 
 
 def render_products(products: pd.DataFrame) -> None:
-    st.header("Product Engagement")
     if products.empty:
         st.info(
             "No resolved laptop-linked events are currently available in "
@@ -210,7 +210,7 @@ def render_products(products: pd.DataFrame) -> None:
         },
         color_discrete_sequence=CHART_COLORS,
     )
-    st.plotly_chart(styled_chart(figure), width="stretch")
+    st.plotly_chart(styled_chart(figure, 430), width="stretch")
     st.dataframe(
         products.rename(
             columns={
@@ -226,12 +226,11 @@ def render_products(products: pd.DataFrame) -> None:
         ),
         hide_index=True,
         width="stretch",
+        height=390,
     )
 
 
 def render_searches(searches: pd.DataFrame) -> None:
-    st.header("Search Behavior")
-    st.caption("Search terms are shown as recorded in the source data.")
     if searches.empty:
         st.info("No search terms are available in the local Gold mart.")
         return
@@ -245,7 +244,7 @@ def render_searches(searches: pd.DataFrame) -> None:
         labels={"search_count": "Searches", "search_keyword": "Search term"},
         color_discrete_sequence=["#2563EB"],
     )
-    st.plotly_chart(styled_chart(figure), width="stretch")
+    st.plotly_chart(styled_chart(figure, 420), width="stretch")
     st.dataframe(
         searches.rename(
             columns={
@@ -257,11 +256,11 @@ def render_searches(searches: pd.DataFrame) -> None:
         ),
         hide_index=True,
         width="stretch",
+        height=390,
     )
 
 
 def render_device_behavior(data: dict[str, pd.DataFrame]) -> None:
-    st.header("Device and OS Behavior")
     device_column, os_column = st.columns(2, gap="large")
     with device_column:
         figure = px.bar(
@@ -308,7 +307,6 @@ def render_device_behavior(data: dict[str, pd.DataFrame]) -> None:
 
 
 def render_session_behavior(summary: pd.DataFrame) -> None:
-    st.header("Session Behavior")
     if summary.empty:
         st.info("No session-level data is available in the local intermediate layer.")
         return
@@ -342,8 +340,6 @@ def render_session_behavior(summary: pd.DataFrame) -> None:
 
 
 def render_quality(quality: pd.DataFrame) -> None:
-    st.header("Data Quality")
-    st.caption("Local warehouse checks surfaced for analytical context.")
     if quality.empty:
         st.info("No local quality summary is available.")
         return
@@ -358,42 +354,268 @@ def render_quality(quality: pd.DataFrame) -> None:
     columns[4].metric("Latest Bronze ingestion", "Unavailable" if pd.isna(latest) else str(latest))
 
 
-def main() -> None:
-    st.set_page_config(
-        page_title="LapLap Analytics",
-        page_icon=None,
-        layout="wide",
-        initial_sidebar_state="expanded",
+def render_section_heading(eyebrow: str, title: str, description: str) -> None:
+    st.markdown(
+        f"""
+        <div class="section-heading">
+            <p class="section-eyebrow">{eyebrow}</p>
+            <h2>{title}</h2>
+            <p>{description}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
+
+
+def apply_dashboard_styles() -> None:
     st.markdown(
         """
         <style>
-        .stApp { background: #F6F8FA; }
-        [data-testid="stMetric"] {
-            background: #FFFFFF;
-            border: 1px solid #DDE3EA;
-            border-radius: 6px;
-            padding: 14px 16px;
+        :root {
+            --ink: #172033;
+            --muted: #596A7A;
+            --line: #DCE5EA;
+            --surface: #FFFFFF;
+            --canvas: #F4F7F9;
+            --teal: #007C78;
+            --navy: #102A43;
+            --blue: #2155CD;
         }
-        [data-testid="stMetricLabel"] { color: #475569; }
-        [data-testid="stMetricValue"] { color: #0F172A; }
-        h1, h2, h3 { color: #0F172A; }
+
+        .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+            background: var(--canvas);
+            color: var(--ink);
+        }
+
+        [data-testid="stHeader"] {
+            background: rgba(244, 247, 249, 0.96);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .block-container {
+            max-width: 1440px;
+            padding-top: 2.5rem;
+            padding-bottom: 4rem;
+        }
+
+        [data-testid="stSidebar"] {
+            background: var(--navy);
+            border-right: 1px solid #254563;
+        }
+
+        [data-testid="stSidebar"] * { color: #E9F0F4; }
+        [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p { color: #B9C8D5; }
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
+            color: #FFFFFF;
+            font-size: 1.05rem;
+            margin-top: 1.75rem;
+        }
+
+        [data-testid="stSidebar"] [data-testid="stAlert"] {
+            background: #174E4B;
+            border: 1px solid #257872;
+            border-radius: 4px;
+        }
+
+        .sidebar-mark {
+            border-bottom: 1px solid #36536D;
+            padding: 0.4rem 0 1.25rem;
+        }
+
+        .sidebar-mark p {
+            color: #73D4C6 !important;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.11em;
+            margin: 0 0 0.45rem;
+        }
+
+        .sidebar-mark h2 {
+            color: #FFFFFF;
+            font-size: 1.55rem;
+            letter-spacing: 0;
+            margin: 0;
+        }
+
+        .report-header {
+            align-items: flex-start;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            gap: 1.5rem;
+            justify-content: space-between;
+            margin-bottom: 1.4rem;
+            padding-bottom: 1.85rem;
+        }
+
+        .report-eyebrow, .section-eyebrow {
+            color: var(--teal);
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            margin: 0 0 0.5rem;
+        }
+
+        .report-title {
+            color: var(--ink);
+            font-size: 2.55rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.08;
+            margin: 0;
+            max-width: 720px;
+        }
+
+        .report-subtitle {
+            color: var(--muted);
+            font-size: 1rem;
+            line-height: 1.55;
+            margin: 0.7rem 0 0;
+            max-width: 650px;
+        }
+
+        .report-status {
+            background: #E2F4F0;
+            border: 1px solid #A9DCD4;
+            border-radius: 999px;
+            color: #075E58;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-top: 0.25rem;
+            padding: 0.42rem 0.7rem;
+            white-space: nowrap;
+        }
+
+        .pipeline-line {
+            color: var(--muted);
+            font-size: 0.82rem;
+            margin: 0 0 2rem;
+        }
+
+        .pipeline-line strong { color: var(--ink); }
+
+        .section-heading { margin: 1rem 0 0.9rem; }
+        .section-heading h2 {
+            color: var(--ink);
+            font-size: 1.4rem;
+            letter-spacing: 0;
+            margin: 0;
+        }
+
+        .section-heading > p:last-child {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin: 0.35rem 0 0;
+        }
+
+        [data-testid="stMetric"] {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 5px;
+            border-top: 3px solid var(--teal);
+            box-shadow: none;
+            min-height: 112px;
+            padding: 1rem 1rem 0.85rem;
+        }
+
+        [data-testid="stMetricLabel"] {
+            color: var(--muted) !important;
+            font-size: 0.76rem;
+            font-weight: 650;
+            letter-spacing: 0.025em;
+        }
+
+        [data-testid="stMetricValue"] {
+            color: var(--ink) !important;
+            font-size: 1.8rem;
+            font-weight: 720;
+        }
+
+        [data-testid="stTabs"] [data-baseweb="tab-list"] {
+            border-bottom: 1px solid var(--line);
+            gap: 1.8rem;
+        }
+
+        [data-testid="stTabs"] button[data-baseweb="tab"] {
+            color: var(--muted);
+            font-size: 0.88rem;
+            font-weight: 650;
+            letter-spacing: 0;
+            padding: 0.6rem 0;
+        }
+
+        [data-testid="stTabs"] button[aria-selected="true"] { color: var(--teal); }
+        [data-testid="stTabs"] [data-baseweb="tab-highlight"] { background-color: var(--teal); }
+
+        .stButton > button {
+            background: #FFFFFF;
+            border: 1px solid #7091A9;
+            border-radius: 4px;
+            color: var(--navy);
+            font-weight: 650;
+        }
+
+        .stButton > button:hover {
+            background: #E2F4F0;
+            border-color: #73B9B1;
+            color: #075E58;
+        }
+
+        [data-testid="stSidebar"] .stButton > button {
+            background: transparent;
+            border-color: #60809A;
+            color: #FFFFFF;
+        }
+
+        [data-testid="stSidebar"] .stButton > button:hover {
+            background: #1B455E;
+            border-color: #80B7C5;
+            color: #FFFFFF;
+        }
+
+        [data-testid="stDataFrame"] {
+            border: 1px solid var(--line);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        [data-testid="stPlotlyChart"] { border-bottom: 1px solid #E8EEF1; }
+        hr { border-color: var(--line); margin: 2.5rem 0; }
+
+        @media (max-width: 760px) {
+            .block-container { padding: 1.5rem 1rem 3rem; }
+            .report-header { display: block; }
+            .report-title { font-size: 2rem; }
+            .report-status { display: inline-block; margin-top: 1rem; }
+            [data-testid="stTabs"] [data-baseweb="tab-list"] { gap: 1rem; overflow-x: auto; }
+        }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    st.title("LapLap Analytics - Clickstream and Product Engagement")
-    st.caption("Clickstream analytics pipeline built with Python, ClickHouse, and dbt.")
-    st.markdown(
-        "**Data pipeline:** Remote ClickHouse -> Python Ingestion -> Bronze -> "
-        "dbt Staging -> Intermediate -> Gold Marts"
+
+def main() -> None:
+    st.set_page_config(
+        page_title="LapLap Analytics",
+        page_icon=":material/insights:",
+        layout="wide",
+        initial_sidebar_state="expanded",
     )
+    apply_dashboard_styles()
 
     with st.sidebar:
+        st.markdown(
+            """
+            <div class="sidebar-mark">
+                <p>ANALYTICS WORKSPACE</p>
+                <h2>LapLap</h2>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         st.subheader("Warehouse")
         st.caption("Local ClickHouse only")
-        if st.button("Refresh data", width="stretch"):
+        if st.button("Refresh data", icon=":material/refresh:", width="stretch"):
             st.cache_data.clear()
             st.cache_resource.clear()
             st.rerun()
@@ -410,8 +632,22 @@ def main() -> None:
         st.caption(f"{settings['host']}:{settings['port']}")
         st.caption("Sources: laplap_marts, laplap_intermediate, laplap_raw")
 
+    st.markdown(
+        """
+        <div class="report-header">
+            <div>
+                <p class="report-eyebrow">CLICKSTREAM INTELLIGENCE</p>
+                <h1 class="report-title">LapLap Analytics</h1>
+                <p class="report-subtitle">Product discovery and comparison behavior, modeled from the local ClickHouse warehouse.</p>
+            </div>
+            <div class="report-status">LOCAL WAREHOUSE ONLINE</div>
+        </div>
+        <p class="pipeline-line"><strong>Pipeline</strong> &nbsp; Remote ClickHouse &rarr; Python ingestion &rarr; Bronze &rarr; dbt &rarr; Gold marts</p>
+        """,
+        unsafe_allow_html=True,
+    )
+
     funnel = data["funnel"]
-    st.header("Executive KPIs")
     if funnel.empty:
         st.warning("No funnel KPI data is available in the local Gold mart.")
     else:
@@ -423,15 +659,61 @@ def main() -> None:
             ("Comparison selections", values["comparison_selection_sessions"]),
             ("Comparison adds", values["comparison_add_sessions"]),
         ]
-        for column, (label, value) in zip(st.columns(5), metrics):
+        for column, (label, value) in zip(st.columns(3), metrics[:3]):
             column.metric(label, display_number(value))
 
-    render_funnel(funnel)
-    render_products(data["products"])
-    render_searches(data["searches"])
-    render_device_behavior(data)
-    render_session_behavior(data["session_summary"])
-    render_quality(data["quality"])
+        for column, (label, value) in zip(st.columns(2), metrics[3:]):
+            column.metric(label, display_number(value))
+
+    overview_tab, products_tab, audience_tab, quality_tab = st.tabs(
+        ["Overview", "Products & Search", "Audience", "Data Quality"]
+    )
+
+    with overview_tab:
+        render_section_heading(
+            "JOURNEY PERFORMANCE",
+            "Strict session funnel",
+            "Every stage must occur after the prior action in the same session.",
+        )
+        render_funnel(funnel)
+
+    with products_tab:
+        render_section_heading(
+            "PRODUCT INTEREST",
+            "Product engagement",
+            "Top resolved laptop interactions across pageviews and comparison actions.",
+        )
+        render_products(data["products"])
+        st.divider()
+        render_section_heading(
+            "DISCOVERY INPUT",
+            "Search behavior",
+            "Search terms are shown as recorded in the source data.",
+        )
+        render_searches(data["searches"])
+
+    with audience_tab:
+        render_section_heading(
+            "PLATFORM MIX",
+            "Device and OS behavior",
+            "Event volume and comparison actions grouped by client environment.",
+        )
+        render_device_behavior(data)
+        st.divider()
+        render_section_heading(
+            "SESSION DEPTH",
+            "Session behavior",
+            "Duration and event intensity across the observed clickstream sessions.",
+        )
+        render_session_behavior(data["session_summary"])
+
+    with quality_tab:
+        render_section_heading(
+            "WAREHOUSE HEALTH",
+            "Data quality",
+            "Local Bronze completeness and product-reference coverage for analytical context.",
+        )
+        render_quality(data["quality"])
 
 
 if __name__ == "__main__":
