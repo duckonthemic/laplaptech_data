@@ -1,0 +1,46 @@
+version: 2
+
+models:
+
+  - name: mart_product_engagement
+    description: >
+      Product-level engagement metrics derived from enriched
+      clickstream events.
+
+    columns:
+      - name: laptop_id
+        tests:
+          - not_null
+          - unique
+
+      - name: laptop_name
+        tests:
+          - not_null
+
+      - name: total_product_events
+        tests:
+          - not_null
+
+
+  - name: mart_search_behavior
+    description: >
+      Aggregated user search behavior by normalized search keyword.
+
+    columns:
+      - name: search_keyword
+        tests:
+          - not_null
+          - unique
+
+      - name: search_count
+        tests:
+          - not_null
+
+  - name: mart_session_funnel
+    description: >
+      Overall session funnel from search through comparison engagement.
+
+    columns:
+      - name: total_sessions
+        tests:
+          - not_null
