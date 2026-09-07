@@ -67,3 +67,41 @@ models:
       - name: event_count
         tests:
           - not_null
+
+  - name: int_master_data_quality
+    description: >
+      Warning-level source data-quality findings for active CPU and GPU models
+      referenced by laptops but missing their source brand relationship.
+
+    columns:
+      - name: issue_type
+        tests:
+          - not_null
+
+      - name: entity_type
+        tests:
+          - not_null
+
+      - name: entity_id
+        tests:
+          - not_null
+
+      - name: entity_name
+        tests:
+          - not_null
+
+      - name: severity
+        tests:
+          - not_null
+
+      - name: is_active
+        tests:
+          - not_null
+
+      - name: is_referenced_by_laptop
+        tests:
+          - not_null
+
+      - name: referencing_laptop_count
+        tests:
+          - not_null

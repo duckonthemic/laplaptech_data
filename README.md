@@ -2,15 +2,24 @@
 
 LapLap Analytics is a Data Engineering portfolio project for clickstream and
 laptop-product analytics. It extracts from a read-only ClickHouse source into a
-local ClickHouse warehouse, then builds reusable behavioral and product models
-with dbt.
+local ClickHouse warehouse, builds reusable behavioral and product models with
+dbt, and presents the results in a local Streamlit dashboard.
 
 ## Overview
 
 The platform makes the laptop discovery journey measurable: discovery, search,
 product interest, comparison selection, and comparison interaction. Source
-data is never modified. Python owns local Bronze ingestion and dbt owns local
-transformations.
+data is never modified. Python owns local Bronze ingestion, dbt owns local
+transformations, and the dashboard reads only from local warehouse tables. The
+verified real initial load contains 767,199 events across 93,781 sessions; IDs
+have gaps, so counts are never inferred from `max(id)`.
+
+## Business Questions
+
+- How does a visitor progress from search to product comparison?
+- Which laptop products receive the strongest resolved engagement?
+- What search terms, device types, and operating systems drive behavior?
+- Where do users leave the strict, ordered comparison funnel?
 
 ## Architecture
 
@@ -21,7 +30,7 @@ flowchart LR
     raw --> staging[dbt staging<br/>laplap_staging]
     staging --> intermediate[dbt intermediate<br/>laplap_intermediate]
     intermediate --> marts[dbt Gold marts<br/>laplap_marts]
-    marts --> dashboard[Dashboard<br/>future]
+    marts --> dashboard[Streamlit dashboard<br/>local]
 ```
 
 The local ClickHouse instance runs through Docker Compose. `laplap_raw` is the
@@ -35,16 +44,17 @@ source-preserving Bronze layer; `laplap_staging`, `laplap_intermediate`, and
 - dbt Core and dbt-clickhouse
 - Docker Compose
 - pytest
+- Streamlit and Plotly
 - Git
 
 DBeaver is useful for local exploration, but is not a runtime dependency.
 
 ## Source Data
 
-The source contains clickstream events, laptop product master data, normalized
-brand/CPU/GPU dimensions, and a laptop benchmark table. The remote ClickHouse
-database is strictly read-only: ingestion issues `SELECT` statements only, and
-all writes target local ClickHouse.
+The source contains more than 767K loaded clickstream events, 157 laptop master
+records, normalized brand/CPU/GPU dimensions, and a laptop benchmark table. The
+remote ClickHouse database is strictly read-only: ingestion issues `SELECT`
+statements only, and all writes target local ClickHouse.
 
 ## Data Layers
 
@@ -121,6 +131,12 @@ samples, and source-to-target columns. DateTime64 fields are reconciled as Unix
 epoch milliseconds, so their absolute instants are independent of display or
 server timezones.
 
+The source also contains incomplete CPU/GPU-to-brand relationships. Bronze keeps
+those `NULL` values intact. `int_master_data_quality` reports active, laptop-
+referenced CPU/GPU models missing a brand as warning rows, while `LEFT JOIN`
+product enrichment preserves the affected laptops and their events without
+inventing brand values.
+
 ## Timestamp Fidelity
 
 An earlier Windows UTC+7 issue showed that a naive Python `datetime` could shift
@@ -163,6 +179,37 @@ $env:DBT_RAW_SCHEMA = "laplap_dev_raw"
 Pop-Location
 ```
 
+## Run Locally
+
+Start local ClickHouse, build the local warehouse, then run the dashboard:
+
+```powershell
+docker compose up -d
+Remove-Item Env:DBT_RAW_SCHEMA -ErrorAction SilentlyContinue
+Push-Location dbt
+..\.venv-dbt\Scripts\dbt.exe build --profiles-dir .
+Pop-Location
+.\.venv-dashboard\Scripts\streamlit.exe run dashboards\app.py
+```
+
+For first-time dashboard setup and connection troubleshooting, use the
+[dashboard runbook](docs/dashboard_runbook.md).
+
+## Dashboard
+
+The local Streamlit dashboard exposes executive KPIs, the strict funnel,
+product engagement, search behavior, device/OS behavior, session behavior, and
+local data-quality context. Values are dynamically queried from Gold marts and
+supporting local layers; no dashboard metric is hardcoded.
+
+```powershell
+.\.venv-dashboard\Scripts\streamlit.exe run dashboards\app.py
+```
+
+Open `http://localhost:8501`. Follow the
+[dashboard runbook](docs/dashboard_runbook.md) for local setup, dbt build, and
+troubleshooting.
+
 ## dbt Lineage
 
 ```mermaid
@@ -187,19 +234,19 @@ downstream model.
 
 ## Current Status
 
-Completed: local ClickHouse, Bronze schemas, ingestion framework,
-reconciliation coverage, staging, intermediate models, the strict session
-funnel, marts, Python tests, and dbt tests/docs generation.
+Completed: local ClickHouse, Bronze schemas, reconciled real-source initial
+load, keyset pagination and resume safeguards, UTC timestamp fidelity,
+staging/intermediate/Gold transformations, strict funnel, local dashboard,
+Python tests, and dbt build/docs generation.
 
-Pending: a full real-source initial load, full-data profiling, orchestration,
-observability, and a dashboard.
+Pending: full-data profiling, scheduled incremental ingestion, orchestration,
+observability, and dashboard deployment.
 
 ## Future Work
 
-- Run and reconcile the bounded real-source initial load when the source is available.
 - Add incremental ingestion with durable checkpoints.
 - Add orchestration and operational observability.
-- Build a dashboard on the Gold marts.
+- Deploy the dashboard beyond the local development environment.
 
 For architecture boundaries and transformation choices, see
 [docs/architecture.md](docs/architecture.md).

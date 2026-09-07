@@ -51,8 +51,9 @@ models:
           - not_null
 
       - name: cpu_brand_id
-        tests:
-          - not_null
+        description: >
+          Nullable source relationship. Active CPU models referenced by laptops
+          without a brand are reported by int_master_data_quality.
 
 
   - name: stg_gpu_model
@@ -69,8 +70,9 @@ models:
           - not_null
 
       - name: gpu_brand_id
-        tests:
-          - not_null
+        description: >
+          Nullable source relationship. Active GPU models referenced by laptops
+          without a brand are reported by int_master_data_quality.
 
 
   - name: stg_laptop_model
