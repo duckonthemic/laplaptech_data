@@ -18,7 +18,8 @@ have gaps, so counts are never inferred from `max(id)`.
 
 - How does a visitor progress from search to product comparison?
 - Which laptop products receive the strongest resolved engagement?
-- What search terms, device types, and operating systems drive behavior?
+- What normalized search terms and operating systems drive behavior, and what
+  client-telemetry coverage is available?
 - Where do users leave the strict, ordered comparison funnel?
 
 ## Architecture

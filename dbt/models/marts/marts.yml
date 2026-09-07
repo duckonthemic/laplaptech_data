@@ -24,7 +24,10 @@ models:
 
   - name: mart_search_behavior
     description: >
-      Aggregated user search behavior by normalized search keyword.
+      Aggregated user search behavior after lowercasing and trimming source
+      search keywords. Empty keywords after trimming are excluded. Partial
+      queries are preserved because the source may record search-as-you-type
+      events.
 
     columns:
       - name: search_keyword
@@ -33,6 +36,10 @@ models:
           - unique
 
       - name: search_count
+        tests:
+          - not_null
+
+      - name: raw_search_variants
         tests:
           - not_null
 

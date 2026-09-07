@@ -59,27 +59,28 @@ def load_dashboard_data() -> dict[str, pd.DataFrame]:
             "ORDER BY total_product_events DESC, laptop_name ASC LIMIT 10"
         ),
         "searches": query_frame(
-            "SELECT search_keyword, search_count, unique_visitors, unique_sessions "
+            "SELECT search_keyword, search_count, unique_visitors, unique_sessions, "
+            "raw_search_variants "
             "FROM laplap_marts.mart_search_behavior "
             "ORDER BY search_count DESC, search_keyword ASC LIMIT 15"
         ),
-        "device_types": query_frame(
-            "SELECT device_type, sum(total_events) AS total_events "
-            "FROM laplap_marts.mart_device_behavior "
-            "GROUP BY device_type ORDER BY total_events DESC LIMIT 10"
+        "device_coverage": query_frame(
+            "SELECT count() AS total_events, "
+            "countIf(device_type IS NOT NULL) AS classified_device_events "
+            "FROM laplap_intermediate.int_events_enriched"
         ),
         "operating_systems": query_frame(
-            "SELECT os_name, sum(total_events) AS total_events "
+            "SELECT coalesce(os_name, 'Unknown') AS os_name, sum(total_events) AS total_events "
             "FROM laplap_marts.mart_device_behavior "
             "GROUP BY os_name ORDER BY total_events DESC LIMIT 10"
         ),
-        "device_interactions": query_frame(
-            "SELECT device_type, sum(pageviews) AS pageviews, "
+        "os_interactions": query_frame(
+            "SELECT coalesce(os_name, 'Unknown') AS os_name, sum(pageviews) AS pageviews, "
             "sum(search_events) AS search_events, "
             "sum(comparison_selection_events) AS comparison_selections, "
             "sum(comparison_add_events) AS comparison_adds "
             "FROM laplap_marts.mart_device_behavior "
-            "GROUP BY device_type ORDER BY sum(total_events) DESC LIMIT 8"
+            "GROUP BY os_name ORDER BY sum(total_events) DESC LIMIT 8"
         ),
         "session_summary": query_frame(
             "SELECT round(avg(session_duration_seconds), 2) AS average_duration_seconds, "
@@ -241,17 +242,21 @@ def render_searches(searches: pd.DataFrame) -> None:
         x="search_count",
         y="search_keyword",
         orientation="h",
-        labels={"search_count": "Searches", "search_keyword": "Search term"},
+        labels={
+            "search_count": "Searches",
+            "search_keyword": "Normalized search term",
+        },
         color_discrete_sequence=["#2563EB"],
     )
     st.plotly_chart(styled_chart(figure, 420), width="stretch")
     st.dataframe(
         searches.rename(
             columns={
-                "search_keyword": "Search term",
+                "search_keyword": "Normalized term",
                 "search_count": "Searches",
                 "unique_visitors": "Unique visitors",
                 "unique_sessions": "Unique sessions",
+                "raw_search_variants": "Raw variants",
             }
         ),
         hide_index=True,
@@ -260,31 +265,38 @@ def render_searches(searches: pd.DataFrame) -> None:
     )
 
 
-def render_device_behavior(data: dict[str, pd.DataFrame]) -> None:
-    device_column, os_column = st.columns(2, gap="large")
-    with device_column:
-        figure = px.bar(
-            data["device_types"].sort_values("total_events", ascending=True),
-            x="total_events",
-            y="device_type",
-            orientation="h",
-            labels={"total_events": "Events", "device_type": "Device type"},
-            color_discrete_sequence=["#0F766E"],
-        )
-        st.plotly_chart(styled_chart(figure, 320), width="stretch")
-    with os_column:
-        figure = px.bar(
-            data["operating_systems"].sort_values("total_events", ascending=True),
-            x="total_events",
-            y="os_name",
-            orientation="h",
-            labels={"total_events": "Events", "os_name": "Operating system"},
-            color_discrete_sequence=["#E76F51"],
-        )
-        st.plotly_chart(styled_chart(figure, 320), width="stretch")
+def render_platform_behavior(data: dict[str, pd.DataFrame]) -> None:
+    coverage = data["device_coverage"]
+    if not coverage.empty:
+        values = coverage.iloc[0]
+        total_events = number(values["total_events"])
+        classified_events = number(values["classified_device_events"])
+        coverage_pct = 100.0 * classified_events / total_events if total_events else 0.0
+        if classified_events == 0:
+            st.warning(
+                "Device type is unavailable in the source payload for all "
+                f"{total_events:,} events. The charts below are grouped by "
+                "operating system only."
+            )
+        elif classified_events < total_events:
+            st.info(
+                f"Device type coverage is {coverage_pct:.2f}% "
+                f"({classified_events:,} of {total_events:,} events). The charts "
+                "below are grouped by operating system only."
+            )
 
-    interactions = data["device_interactions"].melt(
-        id_vars="device_type",
+    figure = px.bar(
+        data["operating_systems"].sort_values("total_events", ascending=True),
+        x="total_events",
+        y="os_name",
+        orientation="h",
+        labels={"total_events": "Events", "os_name": "Operating system"},
+        color_discrete_sequence=["#D95D39"],
+    )
+    st.plotly_chart(styled_chart(figure, 360), width="stretch")
+
+    interactions = data["os_interactions"].melt(
+        id_vars="os_name",
         value_vars=[
             "pageviews",
             "search_events",
@@ -296,11 +308,11 @@ def render_device_behavior(data: dict[str, pd.DataFrame]) -> None:
     )
     figure = px.bar(
         interactions,
-        x="device_type",
+        x="os_name",
         y="Events",
         color="Interaction",
         barmode="group",
-        labels={"device_type": "Device type"},
+        labels={"os_name": "Operating system"},
         color_discrete_sequence=CHART_COLORS,
     )
     st.plotly_chart(styled_chart(figure, 360), width="stretch")
@@ -688,17 +700,17 @@ def main() -> None:
         render_section_heading(
             "DISCOVERY INPUT",
             "Search behavior",
-            "Search terms are shown as recorded in the source data.",
+            "Casing and surrounding whitespace are normalized; partial source queries are retained.",
         )
         render_searches(data["searches"])
 
     with audience_tab:
         render_section_heading(
             "PLATFORM MIX",
-            "Device and OS behavior",
-            "Event volume and comparison actions grouped by client environment.",
+            "Operating system behavior",
+            "Device-type coverage is shown explicitly; event behavior is grouped by operating system.",
         )
-        render_device_behavior(data)
+        render_platform_behavior(data)
         st.divider()
         render_section_heading(
             "SESSION DEPTH",
