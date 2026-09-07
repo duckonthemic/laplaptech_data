@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: int_dim_laptop
+    description: >
+      Enriched laptop dimension combining laptop, brand,
+      CPU and GPU master data.
+
+    columns:
+      - name: laptop_id
+        tests:
+          - not_null
+          - unique
+
+      - name: laptop_name
+        tests:
+          - not_null
+
+      - name: brand_name
+        tests:
+          - not_null
+
+      - name: cpu_name
+        tests:
+          - not_null
+
+      - name: gpu_name
+        tests:
+          - not_null
+
+  - name: int_events_enriched
+    description: >
+      Clickstream events enriched with laptop product attributes
+      when an event references a known laptop.
+
+    columns:
+      - name: event_id
+        tests:
+          - not_null
+          - unique
+
+      - name: event_name
+        tests:
+          - not_null
+
+      - name: visitor_id
+        tests:
+          - not_null
+
+      - name: session_id
+        tests:
+          - not_null

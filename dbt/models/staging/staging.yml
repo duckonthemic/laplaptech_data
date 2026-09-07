@@ -1,0 +1,99 @@
+version: 2
+
+models:
+  - name: stg_user_events
+    description: Cleaned and parsed clickstream events from the Bronze layer.
+
+    columns:
+      - name: event_id
+        tests:
+          - not_null
+          - unique
+
+      - name: event_name
+        tests:
+          - not_null
+
+      - name: visitor_id
+        tests:
+          - not_null
+
+      - name: session_id
+        tests:
+          - not_null
+
+
+  - name: stg_brand
+    description: Cleaned brand master data.
+
+    columns:
+      - name: brand_id
+        tests:
+          - not_null
+          - unique
+
+      - name: brand_name
+        tests:
+          - not_null
+
+
+  - name: stg_cpu_model
+    description: Cleaned CPU model master data.
+
+    columns:
+      - name: cpu_model_id
+        tests:
+          - not_null
+          - unique
+
+      - name: cpu_name
+        tests:
+          - not_null
+
+      - name: cpu_brand_id
+        tests:
+          - not_null
+
+
+  - name: stg_gpu_model
+    description: Cleaned GPU model master data.
+
+    columns:
+      - name: gpu_model_id
+        tests:
+          - not_null
+          - unique
+
+      - name: gpu_name
+        tests:
+          - not_null
+
+      - name: gpu_brand_id
+        tests:
+          - not_null
+
+
+  - name: stg_laptop_model
+    description: Cleaned laptop product master data.
+
+    columns:
+      - name: laptop_id
+        tests:
+          - not_null
+          - unique
+
+      - name: laptop_name
+        tests:
+          - not_null
+
+      - name: brand_id
+        tests:
+          - not_null
+
+      - name: cpu_model_id
+        tests:
+          - not_null
+
+      - name: gpu_model_id
+        tests:
+          - not_null

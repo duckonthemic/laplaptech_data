@@ -1,0 +1,26 @@
+name: 'laplap_analytics'
+version: '1.0.0'
+config-version: 2
+
+profile: 'laplap_analytics'
+
+model-paths: ["models"]
+test-paths: ["tests"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  laplap_analytics:
+
+    staging:
+      +materialized: view
+
+    intermediate:
+      +materialized: view
+      +schema: laplap_intermediate
+
+    marts:
+      +materialized: table
+      +schema: laplap_marts

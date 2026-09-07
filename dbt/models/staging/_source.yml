@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: "{{ env_var('DBT_RAW_SCHEMA', 'laplap_raw') }}"
+
+    tables:
+      - name: user_event_tracking
+      - name: laptop_model
+      - name: brand
+      - name: cpu_model
+      - name: gpu_model
+      - name: laptop_benchmark_result

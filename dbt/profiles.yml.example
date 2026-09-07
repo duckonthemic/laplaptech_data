@@ -1,0 +1,12 @@
+laplap_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: clickhouse
+      host: "{{ env_var('LOCAL_CH_HOST', 'localhost') }}"
+      port: "{{ env_var('LOCAL_CH_HTTP_PORT', '8123') | int }}"
+      user: "{{ env_var('LOCAL_CH_USERNAME') }}"
+      password: "{{ env_var('LOCAL_CH_PASSWORD') }}"
+      schema: laplap_staging
+      secure: false
+      threads: 4
