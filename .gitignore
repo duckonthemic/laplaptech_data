@@ -1,6 +1,7 @@
 .env
 .venv/
 .venv-*/
+.venv-dbt/
 .pytest_cache/
 dbt/profiles.yml
 dbt/.user.yml
@@ -14,5 +15,7 @@ logs/
 data/
 target/
 dbt_packages/
+dbt/target/
+dbt/logs/
 .DS_Store
 Thumbs.db
